@@ -1,4 +1,4 @@
-name: Update LeetCode Progress
+name: Update LeetCode README
 
 on:
   push:
@@ -10,18 +10,20 @@ permissions:
   contents: write
 
 jobs:
-  update-progress:
+  update-readme:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Update README progress
+      - name: Build README progress and solved-problems table
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           python - <<'PY'
+          import html
           import json
           import os
           import re
@@ -31,93 +33,167 @@ jobs:
           repo = os.environ["GITHUB_REPOSITORY"]
           token = os.environ["GITHUB_TOKEN"]
           sha = os.environ["GITHUB_SHA"]
-          api = f"https://api.github.com/repos/{repo}/git/trees/{sha}?recursive=1"
 
-          req = urllib.request.Request(
-              api,
-              headers={
-                  "Authorization": f"Bearer {token}",
-                  "Accept": "application/vnd.github+json",
-                  "User-Agent": "leetcode-progress-updater",
-              },
-          )
-          with urllib.request.urlopen(req) as response:
-              tree = json.load(response)["tree"]
+          def request_json(url):
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "leetcode-readme-updater",
+                  },
+              )
+              with urllib.request.urlopen(req) as response:
+                  return json.load(response)
 
-          problem_readmes = [
-              item["path"]
-              for item in tree
-              if item.get("type") == "blob"
-              and re.fullmatch(r"\d+[^/]*/README\.md", item["path"])
-          ]
+          def request_text(url):
+              req = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "leetcode-readme-updater"},
+              )
+              with urllib.request.urlopen(req) as response:
+                  return response.read().decode("utf-8", errors="ignore")
+
+          tree_url = f"https://api.github.com/repos/{repo}/git/trees/{sha}?recursive=1"
+          tree = request_json(tree_url)["tree"]
+
+          folders = {}
+          for item in tree:
+              path = item.get("path", "")
+              parts = path.split("/")
+              if not parts or not re.fullmatch(r"\d+-.*", parts[0]):
+                  continue
+              folder = parts[0]
+              folders.setdefault(folder, []).append(item)
 
           counts = {"Easy": 0, "Medium": 0, "Hard": 0}
-          for path in problem_readmes:
-              raw_url = (
-                  f"https://raw.githubusercontent.com/{repo}/{sha}/"
-                  f"{urllib.parse.quote(path)}"
-              )
-              req = urllib.request.Request(
-                  raw_url,
-                  headers={"User-Agent": "leetcode-progress-updater"},
-              )
-              try:
-                  with urllib.request.urlopen(req) as response:
-                      text = response.read().decode("utf-8", errors="ignore")
-                  match = re.search(r"Difficulty-([A-Za-z]+)-", text, re.IGNORECASE)
-                  if match:
-                      difficulty = match.group(1).capitalize()
-                      if difficulty in counts:
-                          counts[difficulty] += 1
-              except Exception as exc:
-                  print(f"Skipping {path}: {exc}")
+          problems = []
 
+          topic_rules = [
+              (r"two sum|3sum|container with most water|squares of a sorted array|two pointers|remove duplicates|move zeroes", "Two Pointers"),
+              (r"add two numbers|linked list", "Linked List"),
+              (r"longest common prefix|valid anagram|reverse string|string", "Strings"),
+              (r"majority element|contains duplicate|hash", "Hashing"),
+              (r"binary search|search insert|sqrt", "Binary Search"),
+              (r"sliding window|longest substring", "Sliding Window"),
+              (r"permutations|backtracking|subsets", "Backtracking"),
+              (r"climbing stairs|dynamic programming|longest common subsequence", "Dynamic Programming"),
+              (r"stack|valid parentheses|queue", "Stack / Queue"),
+              (r"tree|binary tree|bst", "Trees"),
+              (r"graph", "Graphs"),
+              (r"palindrome number|reverse integer|happy number|roman", "Math"),
+              (r"array|running sum|richest customer|kids with the greatest|shuffle|even number of digits", "Arrays"),
+          ]
+
+          def detect_topic(title):
+              lower = title.lower()
+              for pattern, topic in topic_rules:
+                  if re.search(pattern, lower):
+                      return topic
+              return "DSA"
+
+          for folder, items in folders.items():
+              number = int(folder.split("-", 1)[0])
+              readme_item = next((x for x in items if x["path"].endswith("/README.md")), None)
+              if not readme_item:
+                  continue
+
+              try:
+                  readme_url = f"https://raw.githubusercontent.com/{repo}/{sha}/{urllib.parse.quote(readme_item['path'], safe='/')}"
+                  problem_html = request_text(readme_url)
+
+                  title_match = re.search(r"<h2><a[^>]*>(.*?)</a></h2>", problem_html, re.IGNORECASE | re.DOTALL)
+                  difficulty_match = re.search(r"Difficulty-([A-Za-z]+)-", problem_html, re.IGNORECASE)
+                  if not title_match or not difficulty_match:
+                      continue
+
+                  title = html.unescape(re.sub(r"<.*?>", "", title_match.group(1))).strip()
+                  difficulty = difficulty_match.group(1).capitalize()
+                  if difficulty not in counts:
+                      continue
+
+                  solution_item = next(
+                      (
+                          x for x in items
+                          if x.get("type") == "blob"
+                          and re.search(r"\.(py|cpp|java|js|ts|c|cs|go|rs)$", x["path"], re.IGNORECASE)
+                      ),
+                      None,
+                  )
+                  if not solution_item:
+                      continue
+
+                  solution_path = solution_item["path"]
+                  relative_solution = urllib.parse.quote(solution_path, safe="/-_.")
+                  topic = detect_topic(title)
+
+                  counts[difficulty] += 1
+                  problems.append((number, title, difficulty, topic, relative_solution))
+              except Exception as exc:
+                  print(f"Skipping {folder}: {exc}")
+
+          problems.sort(key=lambda row: row[0])
           total = sum(counts.values())
-          readme_path = "README.md"
-          with open(readme_path, "r", encoding="utf-8") as f:
+
+          with open("README.md", "r", encoding="utf-8") as f:
               readme = f.read()
 
-          start = "<!-- LEETCODE_PROGRESS_START -->"
-          end = "<!-- LEETCODE_PROGRESS_END -->"
-          new_block = (
-              f"{start}\n\n"
+          progress_start = "<!-- LEETCODE_PROGRESS_START -->"
+          progress_end = "<!-- LEETCODE_PROGRESS_END -->"
+          progress_block = (
+              f"{progress_start}\n\n"
               "| Difficulty | Solved |\n"
               "|---|---:|\n"
               f"| 🟢 Easy | {counts['Easy']} |\n"
               f"| 🟡 Medium | {counts['Medium']} |\n"
               f"| 🔴 Hard | {counts['Hard']} |\n"
               f"| **Total** | **{total}** |\n\n"
-              f"{end}"
+              f"{progress_end}"
           )
 
-          if start in readme and end in readme:
+          if progress_start in readme and progress_end in readme:
               readme = re.sub(
-                  re.escape(start) + r".*?" + re.escape(end),
-                  new_block,
+                  re.escape(progress_start) + r".*?" + re.escape(progress_end),
+                  progress_block,
+                  readme,
+                  flags=re.DOTALL,
+              )
+
+          solved_start = "<!-- LEETCODE_SOLVED_START -->"
+          solved_end = "<!-- LEETCODE_SOLVED_END -->"
+          rows = [
+              solved_start,
+              "",
+              "| # | Problem | Difficulty | Topic | Solution |",
+              "|---:|---|---|---|---|",
+          ]
+          for number, title, difficulty, topic, solution_path in problems:
+              rows.append(f"| {number} | {title} | {difficulty} | {topic} | [Python](./{solution_path}) |" if solution_path.lower().endswith(".py") else f"| {number} | {title} | {difficulty} | {topic} | [Solution](./{solution_path}) |")
+          rows.extend(["", solved_end])
+          solved_block = "\n".join(rows)
+
+          if solved_start in readme and solved_end in readme:
+              readme = re.sub(
+                  re.escape(solved_start) + r".*?" + re.escape(solved_end),
+                  solved_block,
                   readme,
                   flags=re.DOTALL,
               )
           else:
-              marker = "## 📊 Progress"
+              marker = "## ✅ Solved Problems"
               if marker not in readme:
-                  raise SystemExit("Could not find the Progress section in README.md")
+                  raise SystemExit("Could not find the Solved Problems section in README.md")
               old_table = re.search(
-                  r"## 📊 Progress\n\n.*?(?=\n## )",
+                  re.escape(marker) + r"\n\n.*?(?=\n## )",
                   readme,
                   flags=re.DOTALL,
               )
               if old_table:
-                  readme = (
-                      readme[:old_table.start()]
-                      + "## 📊 Progress\n\n"
-                      + new_block
-                      + "\n"
-                      + readme[old_table.end():]
-                  )
+                  readme = readme[:old_table.start()] + marker + "\n\n" + solved_block + "\n" + readme[old_table.end():]
               else:
-                  readme = readme.replace(marker, marker + "\n\n" + new_block, 1)
+                  readme = readme.replace(marker, marker + "\n\n" + solved_block, 1)
 
-          with open(readme_path, "w", encoding="utf-8") as f:
+          with open("README.md", "w", encoding="utf-8") as f:
               f.write(readme)
           PY
 
@@ -129,6 +205,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "README is already up to date."
           else
-            git commit -m "docs: update LeetCode progress"
+            git commit -m "docs: update LeetCode README"
             git push
           fi
