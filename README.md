@@ -6,12 +6,16 @@ I use this repository to keep my solutions organized, track my progress, and bui
 
 ## 📊 Progress
 
+<!-- LEETCODE_PROGRESS_START -->
+
 | Difficulty | Solved |
 |---|---:|
-| 🟢 Easy | 1 |
-| 🟡 Medium | 0 |
+| 🟢 Easy | 20 |
+| 🟡 Medium | 9 |
 | 🔴 Hard | 0 |
-| **Total** | **1** |
+| **Total** | **29** |
+
+<!-- LEETCODE_PROGRESS_END -->
 
 ## 🧠 Topics I'm Learning
 
