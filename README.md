@@ -11,9 +11,9 @@ I use this repository to keep my solutions organized, track my progress, and bui
 | Difficulty | Solved |
 |---|---:|
 | 🟢 Easy | 20 |
-| 🟡 Medium | 9 |
+| 🟡 Medium | 10 |
 | 🔴 Hard | 0 |
-| **Total** | **29** |
+| **Total** | **30** |
 
 <!-- LEETCODE_PROGRESS_END -->
 
@@ -54,6 +54,7 @@ I use this repository to keep my solutions organized, track my progress, and bui
 | 46 | Permutations | Medium | Backtracking | [Python](./46-permutations/permutations.py) |
 | 58 | Length of Last Word | Easy | DSA | [Python](./58-length-of-last-word/length-of-last-word.py) |
 | 69 | Sqrt(x) | Easy | Binary Search | [Python](./69-sqrtx/sqrtx.py) |
+| 74 | Search a 2D Matrix | Medium | DSA | [Python](./74-search-a-2d-matrix/search-a-2d-matrix.py) |
 | 75 | Sort Colors | Medium | DSA | [Python](./75-sort-colors/sort-colors.py) |
 | 167 | Two Sum II - Input Array Is Sorted | Medium | Two Pointers | [Python](./167-two-sum-ii-input-array-is-sorted/two-sum-ii-input-array-is-sorted.py) |
 | 169 | Majority Element | Easy | Hashing | [Python](./169-majority-element/majority-element.py) |
