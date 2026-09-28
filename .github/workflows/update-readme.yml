@@ -22,15 +22,16 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PY'
+          import json
           import os
           import re
+          import urllib.parse
           import urllib.request
-          import json
-          import subprocess
 
           repo = os.environ["GITHUB_REPOSITORY"]
           token = os.environ["GITHUB_TOKEN"]
-          api = f"https://api.github.com/repos/{repo}/git/trees/{os.environ['GITHUB_SHA']}?recursive=1"
+          sha = os.environ["GITHUB_SHA"]
+          api = f"https://api.github.com/repos/{repo}/git/trees/{sha}?recursive=1"
 
           req = urllib.request.Request(
               api,
@@ -43,8 +44,6 @@ jobs:
           with urllib.request.urlopen(req) as response:
               tree = json.load(response)["tree"]
 
-          # Every LeetSync problem folder contains a README.md with a
-          # LeetCode difficulty badge. Count those problem READMEs.
           problem_readmes = [
               item["path"]
               for item in tree
@@ -54,8 +53,14 @@ jobs:
 
           counts = {"Easy": 0, "Medium": 0, "Hard": 0}
           for path in problem_readmes:
-              raw_url = f"https://raw.githubusercontent.com/{repo}/{os.environ['GITHUB_SHA']}/{urllib.parse.quote(path)}"
-              req = urllib.request.Request(raw_url, headers={"User-Agent": "leetcode-progress-updater"})
+              raw_url = (
+                  f"https://raw.githubusercontent.com/{repo}/{sha}/"
+                  f"{urllib.parse.quote(path)}"
+              )
+              req = urllib.request.Request(
+                  raw_url,
+                  headers={"User-Agent": "leetcode-progress-updater"},
+              )
               try:
                   with urllib.request.urlopen(req) as response:
                       text = response.read().decode("utf-8", errors="ignore")
@@ -74,7 +79,16 @@ jobs:
 
           start = "<!-- LEETCODE_PROGRESS_START -->"
           end = "<!-- LEETCODE_PROGRESS_END -->"
-          new_block = f"""{start}\n\n| Difficulty | Solved |\n|---|---:|\n| 🟢 Easy | {counts['Easy']} |\n| 🟡 Medium | {counts['Medium']} |\n| 🔴 Hard | {counts['Hard']} |\n| **Total** | **{total}** |\n\n{end}"""
+          new_block = (
+              f"{start}\n\n"
+              "| Difficulty | Solved |\n"
+              "|---|---:|\n"
+              f"| 🟢 Easy | {counts['Easy']} |\n"
+              f"| 🟡 Medium | {counts['Medium']} |\n"
+              f"| 🔴 Hard | {counts['Hard']} |\n"
+              f"| **Total** | **{total}** |\n\n"
+              f"{end}"
+          )
 
           if start in readme and end in readme:
               readme = re.sub(
@@ -87,11 +101,21 @@ jobs:
               marker = "## 📊 Progress"
               if marker not in readme:
                   raise SystemExit("Could not find the Progress section in README.md")
-              readme = readme.replace(
-                  marker,
-                  marker + "\n\n" + new_block,
-                  1,
+              old_table = re.search(
+                  r"## 📊 Progress\n\n.*?(?=\n## )",
+                  readme,
+                  flags=re.DOTALL,
               )
+              if old_table:
+                  readme = (
+                      readme[:old_table.start()]
+                      + "## 📊 Progress\n\n"
+                      + new_block
+                      + "\n"
+                      + readme[old_table.end():]
+                  )
+              else:
+                  readme = readme.replace(marker, marker + "\n\n" + new_block, 1)
 
           with open(readme_path, "w", encoding="utf-8") as f:
               f.write(readme)
