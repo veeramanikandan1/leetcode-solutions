@@ -12,8 +12,8 @@ I use this repository to keep my solutions organized, track my progress, and bui
 |---|---:|
 | 🟢 Easy | 20 |
 | 🟡 Medium | 10 |
-| 🔴 Hard | 0 |
-| **Total** | **30** |
+| 🔴 Hard | 1 |
+| **Total** | **31** |
 
 <!-- LEETCODE_PROGRESS_END -->
 
@@ -40,6 +40,7 @@ I use this repository to keep my solutions organized, track my progress, and bui
 |---:|---|---|---|---|
 | 1 | Two Sum | Easy | Two Pointers | [Python](./1-two-sum/two-sum.py) |
 | 2 | Add Two Numbers | Medium | Linked List | [Python](./2-add-two-numbers/add-two-numbers.py) |
+| 4 | Median of Two Sorted Arrays | Hard | Arrays | [Python](./4-median-of-two-sorted-arrays/median-of-two-sorted-arrays.py) |
 | 7 | Reverse Integer | Medium | Math | [Python](./7-reverse-integer/reverse-integer.py) |
 | 8 | String to Integer (atoi) | Medium | Strings | [Python](./8-string-to-integer-atoi/string-to-integer-atoi.py) |
 | 9 | Palindrome Number | Easy | Math | [Python](./9-palindrome-number/palindrome-number.py) |
