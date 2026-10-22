@@ -11,9 +11,9 @@ I use this repository to keep my solutions organized, track my progress, and bui
 | Difficulty | Solved |
 |---|---:|
 | 🟢 Easy | 20 |
-| 🟡 Medium | 13 |
+| 🟡 Medium | 14 |
 | 🔴 Hard | 1 |
-| **Total** | **34** |
+| **Total** | **35** |
 
 <!-- LEETCODE_PROGRESS_END -->
 
@@ -52,6 +52,7 @@ I use this repository to keep my solutions organized, track my progress, and bui
 | 26 | Remove Duplicates from Sorted Array | Easy | Two Pointers | [Python](./26-remove-duplicates-from-sorted-array/remove-duplicates-from-sorted-array.py) |
 | 27 | Remove Element | Easy | DSA | [Python](./27-remove-element/remove-element.py) |
 | 33 | Search in Rotated Sorted Array | Medium | Arrays | [Python](./33-search-in-rotated-sorted-array/search-in-rotated-sorted-array.py) |
+| 34 | Find First and Last Position of Element in Sorted Array | Medium | Arrays | [Python](./34-find-first-and-last-position-of-element-in-sorted-array/find-first-and-last-position-of-element-in-sorted-array.py) |
 | 35 | Search Insert Position | Easy | Binary Search | [Python](./35-search-insert-position/search-insert-position.py) |
 | 46 | Permutations | Medium | Backtracking | [Python](./46-permutations/permutations.py) |
 | 58 | Length of Last Word | Easy | DSA | [Python](./58-length-of-last-word/length-of-last-word.py) |
